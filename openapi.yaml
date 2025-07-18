@@ -1,0 +1,1373 @@
+openapi: 3.0.0
+info:
+  title: Token API 审计与管理系统
+  description: |
+    基于 Django 的 AI API 代理审计与管理系统，支持多厂商 AI 模型的统一管理、用户配额控制、成本计算和使用审计。
+    
+    ## 认证方式
+    
+    本API支持两种认证方式：
+    
+    1. **JWT Token认证** - 用于管理后台操作
+       - 在 Authorization 头中使用: `Bearer <jwt_token>`
+    
+    2. **API Key认证** - 用于AI服务调用
+       - 在 Authorization 头中使用: `Bearer sk-audit-{32位字符}`
+    
+    ## 权限说明
+    
+    - **超级管理员**: 可以访问所有 `/api/admin/` 开头的接口
+    - **普通用户**: 只能访问自己的资料和配额信息
+    - **API Key**: 仅用于 `/v1/` 下的 OpenAI 兼容接口
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: admin@example.com
+
+servers:
+  - url: http://127.0.0.1:8000
+    description: 开发环境
+  - url: https://your-domain.com
+    description: 生产环境
+
+security:
+  - JWTAuth: []
+  - APIKeyAuth: []
+
+paths:
+  # 认证相关接口
+  /api/auth/login/:
+    post:
+      tags:
+        - 认证
+      summary: 用户登录
+      description: 使用邮箱和密码登录，返回JWT token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: 登录失败
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/logout/:
+    post:
+      tags:
+        - 认证
+      summary: 用户登出
+      description: 注销JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refresh_token:
+                  type: string
+                  description: 刷新token
+      responses:
+        '200':
+          description: 登出成功
+        '400':
+          description: 登出失败
+
+  /api/auth/change-password/:
+    post:
+      tags:
+        - 认证
+      summary: 修改密码
+      description: 修改当前用户密码
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordChangeRequest'
+      responses:
+        '200':
+          description: 密码修改成功
+        '400':
+          description: 密码修改失败
+
+  /api/profile/:
+    get:
+      tags:
+        - 用户
+      summary: 获取用户资料
+      description: 获取当前用户的个人资料信息
+      responses:
+        '200':
+          description: 用户资料
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    put:
+      tags:
+        - 用户
+      summary: 更新用户资料
+      description: 更新当前用户的个人资料信息
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /api/quotas/:
+    get:
+      tags:
+        - 用户
+      summary: 获取用户配额
+      description: 获取当前用户的所有配额信息
+      responses:
+        '200':
+          description: 配额信息
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserQuotasResponse'
+
+  # 管理员用户管理接口
+  /api/admin/users/:
+    get:
+      tags:
+        - 管理员 - 用户管理
+      summary: 获取用户列表
+      description: 获取所有用户列表（仅超级管理员）
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: 搜索用户名或邮箱
+      responses:
+        '200':
+          description: 用户列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUserList'
+    post:
+      tags:
+        - 管理员 - 用户管理
+      summary: 创建用户
+      description: 创建新用户（仅超级管理员）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreateRequest'
+      responses:
+        '201':
+          description: 用户创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /api/admin/users/{id}/:
+    get:
+      tags:
+        - 管理员 - 用户管理
+      summary: 获取用户详情
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 用户详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    put:
+      tags:
+        - 管理员 - 用户管理
+      summary: 更新用户
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    delete:
+      tags:
+        - 管理员 - 用户管理
+      summary: 删除用户
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: 删除成功
+
+  /api/admin/users/{id}/reset-password/:
+    post:
+      tags:
+        - 管理员 - 用户管理
+      summary: 重置用户密码
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                new_password:
+                  type: string
+                  description: 新密码
+      responses:
+        '200':
+          description: 密码重置成功
+
+  # 管理员配额管理接口
+  /api/admin/quotas/:
+    get:
+      tags:
+        - 管理员 - 配额管理
+      summary: 获取配额列表
+      description: 获取所有用户配额列表（仅超级管理员）
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: user_id
+          in: query
+          schema:
+            type: integer
+          description: 按用户ID筛选
+        - name: model_group_id
+          in: query
+          schema:
+            type: integer
+          description: 按模型组ID筛选
+      responses:
+        '200':
+          description: 配额列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedQuotaList'
+    post:
+      tags:
+        - 管理员 - 配额管理
+      summary: 创建用户配额
+      description: 为用户创建新的配额（仅超级管理员）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuotaCreateRequest'
+      responses:
+        '201':
+          description: 配额创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserQuota'
+
+  /api/admin/quotas/{id}/:
+    get:
+      tags:
+        - 管理员 - 配额管理
+      summary: 获取配额详情
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 配额详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserQuota'
+    put:
+      tags:
+        - 管理员 - 配额管理
+      summary: 更新配额
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuotaUpdateRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserQuota'
+    delete:
+      tags:
+        - 管理员 - 配额管理
+      summary: 删除配额
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: 删除成功
+
+  /api/admin/quotas/{id}/reset_api_key/:
+    post:
+      tags:
+        - 管理员 - 配额管理
+      summary: 重置配额API Key
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: API Key重置成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  quota_id:
+                    type: integer
+                  user:
+                    type: string
+                  model_group:
+                    type: string
+                  api_key:
+                    type: string
+                  masked_api_key:
+                    type: string
+                  message:
+                    type: string
+
+  /api/admin/quotas/{id}/requests/:
+    get:
+      tags:
+        - 管理员 - 配额管理
+      summary: 获取配额请求记录
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 请求记录列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuotaRequestsResponse'
+
+  /api/admin/quotas/{id}/statistics/:
+    get:
+      tags:
+        - 管理员 - 配额管理
+      summary: 获取配额统计
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 配额统计
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuotaStatistics'
+
+  /api/admin/users/{user_id}/reset-all-keys/:
+    post:
+      tags:
+        - 管理员 - 配额管理
+      summary: 重置用户所有API Key
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 所有API Key重置成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: integer
+                  user_name:
+                    type: string
+                  user_email:
+                    type: string
+                  updated_keys:
+                    type: array
+                    items:
+                      type: object
+                  message:
+                    type: string
+
+  # 配额日志管理
+  /api/admin/quota-logs/:
+    get:
+      tags:
+        - 管理员 - 配额日志
+      summary: 获取配额使用日志
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: quota_id
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 配额日志列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedQuotaLogList'
+
+  # 配额警告管理
+  /api/admin/quota-alerts/:
+    get:
+      tags:
+        - 管理员 - 配额警告
+      summary: 获取配额警告列表
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: quota_id
+          in: query
+          schema:
+            type: integer
+        - name: user_id
+          in: query
+          schema:
+            type: integer
+        - name: is_resolved
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: 警告列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedQuotaAlertList'
+
+  /api/admin/quota-alerts/{id}/mark_resolved/:
+    post:
+      tags:
+        - 管理员 - 配额警告
+      summary: 标记警告为已解决
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 标记成功
+
+  # OpenAI 兼容接口
+  /v1/chat/completions:
+    post:
+      tags:
+        - OpenAI兼容接口
+      summary: 聊天完成
+      description: |
+        OpenAI兼容的聊天完成接口，支持多种AI模型。
+        使用API Key认证：Authorization: Bearer sk-audit-{32位字符}
+      security:
+        - APIKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatCompletionRequest'
+      responses:
+        '200':
+          description: 聊天完成成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatCompletionResponse'
+        '400':
+          description: 请求参数错误
+        '401':
+          description: 认证失败
+        '403':
+          description: 模型不在配额范围内
+        '429':
+          description: 配额超限
+
+  /v1/models:
+    get:
+      tags:
+        - OpenAI兼容接口
+      summary: 获取可用模型列表
+      description: 获取当前API Key可使用的AI模型列表
+      security:
+        - APIKeyAuth: []
+      responses:
+        '200':
+          description: 模型列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelsListResponse'
+
+  /v1/usage:
+    get:
+      tags:
+        - OpenAI兼容接口
+      summary: 查看使用情况
+      description: 获取当前API Key的配额使用情况
+      security:
+        - APIKeyAuth: []
+      responses:
+        '200':
+          description: 使用情况
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsageResponse'
+
+components:
+  securitySchemes:
+    JWTAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT Token认证，用于管理后台操作
+    APIKeyAuth:
+      type: http
+      scheme: bearer
+      description: API Key认证，格式：Bearer sk-audit-{32位字符}
+
+  schemas:
+    # 认证相关
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: 用户邮箱
+        password:
+          type: string
+          description: 密码
+
+    LoginResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: 访问Token
+        refresh_token:
+          type: string
+          description: 刷新Token
+        user:
+          $ref: '#/components/schemas/User'
+
+    PasswordChangeRequest:
+      type: object
+      required:
+        - old_password
+        - new_password
+        - new_password_confirm
+      properties:
+        old_password:
+          type: string
+          description: 原密码
+        new_password:
+          type: string
+          description: 新密码
+        new_password_confirm:
+          type: string
+          description: 新密码确认
+
+    # 用户相关
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          description: 用户名
+        email:
+          type: string
+          format: email
+          description: 邮箱
+        name:
+          type: string
+          description: 姓名
+        quota_count:
+          type: integer
+          readOnly: true
+          description: 配额数量
+        is_super_admin:
+          type: boolean
+          description: 是否为超级管理员
+        is_active:
+          type: boolean
+          description: 是否激活
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+
+    UserCreateRequest:
+      type: object
+      required:
+        - username
+        - email
+        - name
+        - password
+        - password_confirm
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        password:
+          type: string
+        password_confirm:
+          type: string
+        is_super_admin:
+          type: boolean
+          default: false
+        is_active:
+          type: boolean
+          default: true
+
+    UserUpdateRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        is_super_admin:
+          type: boolean
+        is_active:
+          type: boolean
+
+    UserQuotasResponse:
+      type: object
+      properties:
+        user:
+          type: string
+          description: 用户名
+        quotas:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              model_group:
+                type: string
+              masked_api_key:
+                type: string
+              total_quota:
+                type: number
+                format: decimal
+              used_quota:
+                type: number
+                format: decimal
+              remaining_quota:
+                type: number
+                format: decimal
+              usage_percentage:
+                type: number
+              is_expired:
+                type: boolean
+              expires_at:
+                type: string
+                format: date-time
+
+    # 配额相关
+    UserQuota:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user:
+          type: integer
+          description: 用户ID
+        user_name:
+          type: string
+          readOnly: true
+          description: 用户名
+        user_email:
+          type: string
+          readOnly: true
+          description: 用户邮箱
+        model_group:
+          type: integer
+          description: 模型组ID
+        model_group_name:
+          type: string
+          readOnly: true
+          description: 模型组名称
+        api_key:
+          type: string
+          readOnly: true
+          description: API密钥
+        masked_api_key:
+          type: string
+          readOnly: true
+          description: 掩码后的API密钥
+        total_quota:
+          type: number
+          format: decimal
+          description: 总配额($)
+        used_quota:
+          type: number
+          format: decimal
+          description: 已使用配额($)
+        remaining_quota:
+          type: number
+          format: decimal
+          readOnly: true
+          description: 剩余配额($)
+        usage_percentage:
+          type: number
+          readOnly: true
+          description: 使用百分比
+        period_type:
+          type: string
+          enum: [monthly, weekly, daily, unlimited]
+          description: 配额周期类型
+        period_start:
+          type: string
+          format: date-time
+          description: 周期开始时间
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: 过期时间
+        rate_limit_per_minute:
+          type: integer
+          description: 每分钟请求限制
+        rate_limit_per_hour:
+          type: integer
+          description: 每小时请求限制
+        rate_limit_per_day:
+          type: integer
+          description: 每日请求限制
+        is_active:
+          type: boolean
+          description: 是否激活
+        auto_renew:
+          type: boolean
+          description: 是否自动续费
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+
+    QuotaCreateRequest:
+      type: object
+      required:
+        - user
+        - model_group
+        - total_quota
+        - period_type
+      properties:
+        user:
+          type: integer
+        model_group:
+          type: integer
+        total_quota:
+          type: number
+          format: decimal
+        period_type:
+          type: string
+          enum: [monthly, weekly, daily, unlimited]
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        rate_limit_per_minute:
+          type: integer
+          default: 60
+        rate_limit_per_hour:
+          type: integer
+          default: 3600
+        rate_limit_per_day:
+          type: integer
+          default: 86400
+        is_active:
+          type: boolean
+          default: true
+        auto_renew:
+          type: boolean
+          default: false
+
+    QuotaUpdateRequest:
+      type: object
+      properties:
+        total_quota:
+          type: number
+          format: decimal
+        period_type:
+          type: string
+          enum: [monthly, weekly, daily, unlimited]
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        rate_limit_per_minute:
+          type: integer
+        rate_limit_per_hour:
+          type: integer
+        rate_limit_per_day:
+          type: integer
+        is_active:
+          type: boolean
+        auto_renew:
+          type: boolean
+
+    # API请求记录
+    APIRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        request_id:
+          type: string
+          format: uuid
+          readOnly: true
+        user:
+          type: integer
+        user_name:
+          type: string
+          readOnly: true
+        model:
+          type: integer
+        model_name:
+          type: string
+          readOnly: true
+        model_display_name:
+          type: string
+          readOnly: true
+        model_group:
+          type: integer
+        model_group_name:
+          type: string
+          readOnly: true
+        method:
+          type: string
+        endpoint:
+          type: string
+        request_data:
+          type: object
+        response_data:
+          type: object
+        input_tokens:
+          type: integer
+        output_tokens:
+          type: integer
+        total_tokens:
+          type: integer
+        input_cost:
+          type: number
+          format: decimal
+        output_cost:
+          type: number
+          format: decimal
+        total_cost:
+          type: number
+          format: decimal
+        status_code:
+          type: integer
+        duration_ms:
+          type: integer
+        duration_seconds:
+          type: number
+          readOnly: true
+        is_successful:
+          type: boolean
+          readOnly: true
+        ip_address:
+          type: string
+        user_agent:
+          type: string
+        error_type:
+          type: string
+        error_message:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+
+    QuotaRequestsResponse:
+      type: object
+      properties:
+        quota_info:
+          type: object
+          properties:
+            id:
+              type: integer
+            user:
+              type: string
+            model_group:
+              type: string
+            total_quota:
+              type: number
+              format: decimal
+            used_quota:
+              type: number
+              format: decimal
+            remaining_quota:
+              type: number
+              format: decimal
+        requests:
+          type: array
+          items:
+            $ref: '#/components/schemas/APIRequest'
+        pagination:
+          type: object
+          properties:
+            count:
+              type: integer
+            page:
+              type: integer
+            pages:
+              type: integer
+            has_next:
+              type: boolean
+            has_previous:
+              type: boolean
+
+    QuotaStatistics:
+      type: object
+      properties:
+        total_requests:
+          type: integer
+        total_cost:
+          type: number
+          format: decimal
+        total_tokens:
+          type: integer
+        total_input_tokens:
+          type: integer
+        total_output_tokens:
+          type: integer
+        avg_duration:
+          type: number
+        success_requests:
+          type: integer
+        success_rate:
+          type: number
+
+    # OpenAI兼容接口
+    ChatCompletionRequest:
+      type: object
+      required:
+        - model
+        - messages
+      properties:
+        model:
+          type: string
+          description: 要使用的模型名称
+          example: gpt-4o
+        messages:
+          type: array
+          items:
+            type: object
+            properties:
+              role:
+                type: string
+                enum: [system, user, assistant]
+              content:
+                type: string
+          description: 对话消息列表
+        temperature:
+          type: number
+          minimum: 0
+          maximum: 2
+          default: 1
+          description: 采样温度
+        max_tokens:
+          type: integer
+          description: 最大生成tokens数
+        stream:
+          type: boolean
+          default: false
+          description: 是否流式返回
+
+    ChatCompletionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 聊天完成ID
+        object:
+          type: string
+          enum: [chat.completion]
+        created:
+          type: integer
+          description: 创建时间戳
+        model:
+          type: string
+          description: 使用的模型
+        choices:
+          type: array
+          items:
+            type: object
+            properties:
+              index:
+                type: integer
+              message:
+                type: object
+                properties:
+                  role:
+                    type: string
+                  content:
+                    type: string
+              finish_reason:
+                type: string
+        usage:
+          type: object
+          properties:
+            prompt_tokens:
+              type: integer
+            completion_tokens:
+              type: integer
+            total_tokens:
+              type: integer
+
+    ModelsListResponse:
+      type: object
+      properties:
+        object:
+          type: string
+          enum: [list]
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                description: 模型ID
+              object:
+                type: string
+                enum: [model]
+              created:
+                type: integer
+                description: 创建时间戳
+              owned_by:
+                type: string
+                description: 模型拥有者
+              permission:
+                type: array
+                items:
+                  type: object
+
+    UsageResponse:
+      type: object
+      properties:
+        quota:
+          type: object
+          properties:
+            total_quota:
+              type: number
+              description: 总配额
+            used_quota:
+              type: number
+              description: 已使用配额
+            remaining_quota:
+              type: number
+              description: 剩余配额
+            model_group:
+              type: string
+              description: 模型组名称
+            period_type:
+              type: string
+              description: 周期类型
+            expires_at:
+              type: string
+              format: date-time
+              nullable: true
+              description: 过期时间
+        recent_requests:
+          type: integer
+          description: 最近请求数
+        recent_cost:
+          type: number
+          description: 最近花费
+
+    # 分页响应
+    PaginatedUserList:
+      type: object
+      properties:
+        count:
+          type: integer
+        next:
+          type: string
+          nullable: true
+        previous:
+          type: string
+          nullable: true
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+
+    PaginatedQuotaList:
+      type: object
+      properties:
+        count:
+          type: integer
+        next:
+          type: string
+          nullable: true
+        previous:
+          type: string
+          nullable: true
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserQuota'
+
+    PaginatedQuotaLogList:
+      type: object
+      properties:
+        count:
+          type: integer
+        next:
+          type: string
+          nullable: true
+        previous:
+          type: string
+          nullable: true
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              quota:
+                type: integer
+              user_name:
+                type: string
+              model_group_name:
+                type: string
+              action:
+                type: string
+              amount:
+                type: number
+                format: decimal
+              remaining:
+                type: number
+                format: decimal
+              request_id:
+                type: string
+                format: uuid
+              notes:
+                type: string
+              created_at:
+                type: string
+                format: date-time
+
+    PaginatedQuotaAlertList:
+      type: object
+      properties:
+        count:
+          type: integer
+        next:
+          type: string
+          nullable: true
+        previous:
+          type: string
+          nullable: true
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              quota:
+                type: integer
+              user_name:
+                type: string
+              model_group_name:
+                type: string
+              alert_type:
+                type: string
+              message:
+                type: string
+              is_read:
+                type: boolean
+              is_resolved:
+                type: boolean
+              created_at:
+                type: string
+                format: date-time
+              resolved_at:
+                type: string
+                format: date-time
+                nullable: true
+
+    # 错误响应
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: 错误信息
+        details:
+          type: object
+          description: 详细错误信息
+
+tags:
+  - name: 认证
+    description: 用户认证相关接口
+  - name: 用户
+    description: 用户资料和配额查询
+  - name: 管理员 - 用户管理
+    description: 超级管理员用户管理接口
+  - name: 管理员 - 配额管理
+    description: 超级管理员配额管理接口
+  - name: 管理员 - 配额日志
+    description: 配额使用日志管理
+  - name: 管理员 - 配额警告
+    description: 配额警告管理
+  - name: OpenAI兼容接口
+    description: OpenAI 格式兼容的 AI 服务接口 
