@@ -113,11 +113,11 @@ export const ModelGroupManagement: React.FC = () => {
     try {
       const values = await form.validateFields();
       
-      // 转换数据格式，将models字段映射为ai_models
+      // 转换数据格式，将models字段映射为model_ids
       const groupData = {
         name: values.name,
         description: values.description,
-        ai_models: values.models, // 将models字段转换为ai_models
+        model_ids: values.models, // 将models字段转换为model_ids
         default_quota: values.default_quota.toString(),
         is_active: values.is_active,
       };

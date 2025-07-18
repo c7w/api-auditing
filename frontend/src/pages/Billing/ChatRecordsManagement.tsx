@@ -13,7 +13,6 @@ import {
   Row,
   Col,
   Statistic,
-  DatePicker,
   Select,
 } from 'antd';
 import {
@@ -22,7 +21,6 @@ import {
   EyeOutlined,
   DollarOutlined,
   ApiOutlined,
-  ClockCircleOutlined,
 } from '@ant-design/icons';
 import { PageHeader } from '@/components';
 import { APIRequest } from '@/types/api';
@@ -31,7 +29,6 @@ import type { ColumnsType } from 'antd/es/table';
 
 const { Search } = Input;
 const { Text } = Typography;
-const { RangePicker } = DatePicker;
 const { Option } = Select;
 
 export const ChatRecordsManagement: React.FC = () => {
@@ -343,7 +340,7 @@ export const ChatRecordsManagement: React.FC = () => {
       {statistics?.daily_statistics && statistics.daily_statistics.length > 0 && (
         <Card title="API使用趋势" style={{ marginBottom: 24 }}>
           <div style={{ padding: '16px 0' }}>
-            {statistics.daily_statistics.map((item, index) => {
+            {statistics.daily_statistics.map((item, _) => {
               const maxRequests = Math.max(...statistics.daily_statistics.map(d => d.requests));
               const barWidth = maxRequests > 0 ? (item.requests / maxRequests) * 100 : 0;
               

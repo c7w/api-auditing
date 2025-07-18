@@ -1,5 +1,5 @@
 import { apiClient } from './api';
-import { APIRequest, PaginatedResponse } from '@/types';
+import { APIRequest, PaginatedResponse } from '@/types/api';
 
 export class BillingService {
   // 获取所有聊天记录（管理员专用）
