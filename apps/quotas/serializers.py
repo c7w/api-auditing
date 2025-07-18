@@ -12,17 +12,18 @@ class UserQuotaSerializer(serializers.ModelSerializer):
     remaining_quota = serializers.DecimalField(max_digits=10, decimal_places=6, read_only=True)
     usage_percentage = serializers.FloatField(read_only=True)
     masked_api_key = serializers.CharField(read_only=True)
+    is_deleted = serializers.BooleanField(read_only=True)
     
     class Meta:
         model = UserQuota
         fields = [
-            'id', 'user', 'user_name', 'user_email', 'model_group', 'model_group_name',
-            'api_key', 'masked_api_key', 'total_quota', 'used_quota', 'remaining_quota',
-            'usage_percentage', 'period_type', 'period_start', 'expires_at',
+            'id', 'name', 'description', 'user', 'user_name', 'user_email', 
+            'model_group', 'model_group_name', 'api_key', 'masked_api_key', 
+            'total_quota', 'used_quota', 'remaining_quota', 'usage_percentage', 
             'rate_limit_per_minute', 'rate_limit_per_hour', 'rate_limit_per_day',
-            'is_active', 'auto_renew', 'created_at', 'updated_at'
+            'is_active', 'is_deleted', 'deleted_at', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'api_key', 'masked_api_key', 'remaining_quota', 'usage_percentage', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'api_key', 'masked_api_key', 'remaining_quota', 'usage_percentage', 'is_deleted', 'deleted_at', 'created_at', 'updated_at']
 
 
 class UserQuotaCreateSerializer(serializers.ModelSerializer):
@@ -31,19 +32,20 @@ class UserQuotaCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserQuota
         fields = [
-            'user', 'model_group', 'total_quota', 'period_type', 'expires_at',
+            'name', 'description', 'user', 'model_group', 'total_quota',
             'rate_limit_per_minute', 'rate_limit_per_hour', 'rate_limit_per_day',
-            'is_active', 'auto_renew'
+            'is_active'
         ]
     
     def validate(self, attrs):
-        # 检查用户和模型组的组合是否已存在
+        # 不再检查用户和模型组的组合唯一性，允许同一用户同一模型组有多个配额
+        # 确保配额名称在用户范围内唯一（可选）
         user = attrs['user']
-        model_group = attrs['model_group']
+        name = attrs['name']
         
-        if UserQuota.objects.filter(user=user, model_group=model_group).exists():
+        if UserQuota.objects.filter(user=user, name=name).exists():
             raise serializers.ValidationError(
-                f"用户 {user.name} 在模型组 {model_group.name} 中已有配额"
+                f"用户 {user.name} 已有名为 '{name}' 的配额"
             )
         
         return attrs

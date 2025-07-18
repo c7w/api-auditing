@@ -87,8 +87,8 @@ class ChatCompletionView(APIView):
                 input_tokens = int(usage_data.get('prompt_tokens', 0))
                 output_tokens = int(usage_data.get('completion_tokens', 0))
                 
-                input_cost = (Decimal(str(input_tokens)) / Decimal('1000')) * ai_model.input_price_per_1k
-                output_cost = (Decimal(str(output_tokens)) / Decimal('1000')) * ai_model.output_price_per_1k
+                input_cost = (Decimal(str(input_tokens)) / Decimal('1000000')) * ai_model.input_price_per_1m
+                output_cost = (Decimal(str(output_tokens)) / Decimal('1000000')) * ai_model.output_price_per_1m
                 request_cost = input_cost + output_cost
                 
                 current_quota.used_quota += request_cost
@@ -134,8 +134,8 @@ class ChatCompletionView(APIView):
         input_tokens = int(usage_data.get('prompt_tokens', 0))
         output_tokens = int(usage_data.get('completion_tokens', 0))
         
-        input_cost = (Decimal(str(input_tokens)) / Decimal('1000')) * model.input_price_per_1k
-        output_cost = (Decimal(str(output_tokens)) / Decimal('1000')) * model.output_price_per_1k
+        input_cost = (Decimal(str(input_tokens)) / Decimal('1000000')) * model.input_price_per_1m
+        output_cost = (Decimal(str(output_tokens)) / Decimal('1000000')) * model.output_price_per_1m
         total_cost = input_cost + output_cost
         
         # 获取客户端IP

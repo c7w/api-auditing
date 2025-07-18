@@ -12,8 +12,8 @@ class APIRequest(models.Model):
     
     # 用户和模型信息
     user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='api_requests')
-    model = models.ForeignKey('ai_models.AIModel', on_delete=models.CASCADE, related_name='requests')
-    model_group = models.ForeignKey('groups.ModelGroup', on_delete=models.CASCADE, related_name='requests', null=True)
+    model = models.ForeignKey('ai_models.AIModel', on_delete=models.PROTECT, related_name='requests')
+    model_group = models.ForeignKey('groups.ModelGroup', on_delete=models.PROTECT, related_name='requests', null=True)
     
     # 请求信息
     method = models.CharField('请求方法', max_length=10, default='POST')
@@ -172,7 +172,7 @@ class UsageStatistics(models.Model):
     """使用统计（按日/时维度）"""
     
     user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='usage_statistics')
-    model = models.ForeignKey('ai_models.AIModel', on_delete=models.CASCADE, related_name='usage_statistics')
+    model = models.ForeignKey('ai_models.AIModel', on_delete=models.PROTECT, related_name='usage_statistics')
     
     # 时间维度
     date = models.DateField('日期')

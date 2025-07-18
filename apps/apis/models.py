@@ -14,6 +14,7 @@ class APIProvider(models.Model):
         ordering = ['name']
 
     name = models.CharField('提供商名称', max_length=100, unique=True)
+    description = models.TextField('描述', blank=True, default='')
     base_url = models.URLField('基础URL', help_text='API的基础URL，如：https://api.openai.com/v1')
     api_key = models.CharField('API密钥', max_length=200)
     

@@ -26,16 +26,21 @@ class UserQuota(models.Model):
         verbose_name = '用户配额'
         verbose_name_plural = '用户配额'
         ordering = ['-created_at']
-        unique_together = ['user', 'model_group']
+        # unique_together = ['user', 'model_group']  # 移除唯一约束，允许同一用户同一模型组有多个配额
         indexes = [
             models.Index(fields=['user', 'model_group']),
             models.Index(fields=['api_key']),
             models.Index(fields=['created_at']),
+            models.Index(fields=['name']),  # 为配额名称添加索引
         ]
 
+    # 配额基本信息
+    name = models.CharField('配额名称', max_length=100, help_text='配额包名称，如"高级开发包"、"基础套餐"等')
+    description = models.TextField('配额描述', blank=True, help_text='配额包的详细描述')
+    
     # 用户和模型组
     user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='quotas')
-    model_group = models.ForeignKey('groups.ModelGroup', on_delete=models.CASCADE, related_name='quotas')
+    model_group = models.ForeignKey('groups.ModelGroup', on_delete=models.PROTECT, related_name='quotas')
     
     # API密钥
     api_key = models.CharField('API密钥', max_length=100, unique=True, default=generate_api_key)
@@ -44,17 +49,6 @@ class UserQuota(models.Model):
     total_quota = models.DecimalField('总配额($)', max_digits=10, decimal_places=6)
     used_quota = models.DecimalField('已使用配额($)', max_digits=10, decimal_places=6, default=Decimal('0.000000'))
     
-    # 配额周期
-    PERIOD_CHOICES = [
-        ('monthly', '每月'),
-        ('weekly', '每周'),
-        ('daily', '每日'),
-        ('unlimited', '不限期'),
-    ]
-    period_type = models.CharField('周期类型', max_length=20, choices=PERIOD_CHOICES, default='monthly')
-    period_start = models.DateTimeField('周期开始时间', default=timezone.now)
-    expires_at = models.DateTimeField('过期时间', null=True, blank=True)
-    
     # 速率限制
     rate_limit_per_minute = models.IntegerField('每分钟请求限制', default=60)
     rate_limit_per_hour = models.IntegerField('每小时请求限制', default=3600)
@@ -62,14 +56,33 @@ class UserQuota(models.Model):
     
     # 状态
     is_active = models.BooleanField('是否激活', default=True)
-    auto_renew = models.BooleanField('是否自动续费', default=False)
+    
+    # 软删除
+    deleted_at = models.DateTimeField('删除时间', null=True, blank=True, help_text='软删除时间，为空表示未删除')
     
     # 时间戳
     created_at = models.DateTimeField('创建时间', auto_now_add=True)
     updated_at = models.DateTimeField('更新时间', auto_now=True)
     
     def __str__(self):
-        return f"{self.user.name} - {self.model_group.name} - ${self.total_quota}"
+        return f"{self.name} ({self.user.name} - {self.model_group.name}) - ${self.total_quota}"
+    
+    @property
+    def is_deleted(self):
+        """是否已删除"""
+        return self.deleted_at is not None
+    
+    def soft_delete(self):
+        """软删除配额，保留聊天记录"""
+        self.deleted_at = timezone.now()
+        self.is_active = False  # 同时禁用配额
+        self.save()
+    
+    def restore(self):
+        """恢复软删除的配额"""
+        self.deleted_at = None
+        self.is_active = True
+        self.save()
     
     @property
     def remaining_quota(self):
@@ -82,13 +95,6 @@ class UserQuota(models.Model):
         if self.total_quota == 0:
             return 100.0
         return float((self.used_quota / self.total_quota) * 100)
-    
-    @property
-    def is_expired(self):
-        """是否过期"""
-        if not self.expires_at:
-            return False
-        return timezone.now() >= self.expires_at
     
     @property
     def masked_api_key(self):
@@ -133,9 +139,6 @@ class UserQuota(models.Model):
         if not self.is_active:
             return False, "配额未激活"
         
-        if self.is_expired:
-            return False, "配额已过期"
-        
         if self.used_quota >= self.total_quota:
             return False, "配额已用完"
         
@@ -178,18 +181,11 @@ class UserQuota(models.Model):
             )
         
         # 配额即将过期（3天内）
-        if self.expires_at and not self.is_expired:
-            days_left = (self.expires_at - timezone.now()).days
-            if days_left <= 3 and not QuotaAlert.objects.filter(
-                quota=self,
-                alert_type='expiring_soon',
-                is_resolved=False
-            ).exists():
-                QuotaAlert.objects.create(
-                    quota=self,
-                    alert_type='expiring_soon',
-                    message=f'配额将在 {days_left} 天后过期'
-                )
+        # The original code had a check for `expires_at` and `is_expired`.
+        # Since `expires_at` and `is_expired` are removed, this logic needs to be re-evaluated
+        # or removed if it's no longer relevant. For now, removing the check as it relies on
+        # fields that are being removed.
+        pass
 
     def get_usage_statistics(self, start_date=None, end_date=None):
         """获取使用统计"""

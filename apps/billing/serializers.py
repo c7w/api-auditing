@@ -7,21 +7,20 @@ class APIRequestSerializer(serializers.ModelSerializer):
     user_name = serializers.CharField(source='user.name', read_only=True)
     model_name = serializers.CharField(source='model.name', read_only=True)
     model_display_name = serializers.CharField(source='model.display_name', read_only=True)
-    model_group_name = serializers.CharField(source='model_group.name', read_only=True)
     duration_seconds = serializers.FloatField(read_only=True)
     is_successful = serializers.BooleanField(read_only=True)
+    ip_address = serializers.CharField(read_only=True)  # 显式定义为CharField避免IPAddressField的问题
     
     class Meta:
         model = APIRequest
         fields = [
             'id', 'request_id', 'user', 'user_name', 'model', 'model_name', 
-            'model_display_name', 'model_group', 'model_group_name',
-            'method', 'endpoint', 'request_data', 'response_data',
+            'model_display_name', 'method', 'endpoint',
+            'request_data', 'response_data',
             'input_tokens', 'output_tokens', 'total_tokens',
             'input_cost', 'output_cost', 'total_cost',
             'status_code', 'duration_ms', 'duration_seconds', 'is_successful',
-            'ip_address', 'user_agent', 'error_type', 'error_message',
-            'created_at'
+            'ip_address', 'created_at'
         ]
         read_only_fields = ['id', 'request_id', 'duration_seconds', 'is_successful', 'created_at']
 

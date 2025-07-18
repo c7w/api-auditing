@@ -26,6 +26,10 @@ class APIKeyAuthentication(BaseAuthentication):
             
         if keyword.lower() != self.keyword.lower():
             return None
+        
+        # 只处理以 sk-audit- 开头的API Key
+        if not token.startswith('sk-audit-'):
+            return None
             
         return self.authenticate_credentials(token, request)
     
@@ -36,7 +40,8 @@ class APIKeyAuthentication(BaseAuthentication):
             quota = UserQuota.objects.select_related('user', 'model_group').get(
                 api_key=key, 
                 is_active=True,
-                user__is_active=True
+                user__is_active=True,
+                deleted_at__isnull=True  # 排除软删除的配额
             )
         except UserQuota.DoesNotExist:
             raise AuthenticationFailed(_('Invalid API key'))

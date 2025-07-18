@@ -1,183 +1,275 @@
 # Token API 审计与管理系统
 
-基于 Django 的 AI API 代理审计与管理系统，支持多厂商 AI 模型的统一管理、用户配额控制、成本计算和使用审计。
+基于 Django + React 的 AI API 代理审计与管理系统，支持多厂商 AI 模型的统一管理、用户配额控制、成本计算和使用审计。
 
 ## 🚀 功能特性
 
-### ✅ 已实现功能
+### 后端功能
+- **用户管理**: 支持多用户系统，超级管理员和普通用户角色
+- **配额管理**: 灵活的配额分配和使用监控
+- **API代理**: OpenAI兼容的API接口，支持多厂商模型
+- **成本计算**: 精确的Token计算和成本统计
+- **使用审计**: 完整的API调用记录和分析
+- **权限控制**: 基于JWT的认证和权限管理
 
-- **用户管理系统**
-  - 超级管理员与普通用户权限控制
-  - 用户认证（JWT + API Key双重认证）
-  - 基于配额的API密钥管理（每个用户-模型组-配额组合生成独立密钥）
+### 前端功能
+- **仪表盘**: 直观的数据可视化和统计图表
+- **用户管理**: 用户创建、编辑、删除和权限管理
+- **配额管理**: 配额分配、监控和API Key管理
+- **实时监控**: API使用情况实时展示
+- **响应式设计**: 支持桌面和移动端访问
 
-- **API 提供商管理**
-  - 支持多个第三方API提供商（OpenAI、Claude等）
-  - API连接测试与模型同步
-  - 配置管理与状态监控
+## 🛠️ 技术栈
 
-- **AI 模型管理**
-  - 自动同步模型信息
-  - 定价配置（输入/输出token价格）
-  - 模型能力标记
+### 后端
+- **Django 4.2** - Web框架
+- **Django REST Framework** - API框架
+- **SQLite** - 数据库（可切换到PostgreSQL/MySQL）
+- **JWT** - 身份验证
+- **Uvicorn** - ASGI服务器
 
-- **模型组管理**
-  - 将多个模型打包成组
-  - 灵活的访问权限控制
-  - 默认配额设置
+### 前端
+- **React 18** - 前端框架
+- **TypeScript** - 类型安全
+- **Ant Design** - UI组件库
+- **Zustand** - 状态管理
+- **React Router** - 路由管理
+- **Recharts** - 图表库
+- **Axios** - HTTP客户端
+- **Vite** - 构建工具
 
-- **用户配额系统**
-  - 多周期配额支持（月/周/日/不限期）
-  - 实时配额消费与监控
-  - 速率限制控制
-  - 配额警告与自动续费
+## 📦 快速开始
 
-- **计费与审计**
-  - 详细的API请求记录
-  - 自动成本计算
-  - 使用统计报表
-  - 成本警告机制
+### 环境要求
+- Python 3.9+
+- Node.js 18+
+- npm 或 yarn
 
-### 🔄 进行中
-
-- **API 代理转发服务** - 兼容 OpenAI 格式的代理接口
-
-### 📋 待开发
-
-- **前端管理界面** - React/Vue.js 管理后台
-- **仪表盘与报表** - 数据可视化
-- **API 接口文档** - 完整的 API 文档
-
-## 🛠 技术栈
-
-- **后端**: Django 5.2.4 + Django REST Framework
-- **数据库**: PostgreSQL / MySQL / SQLite
-- **认证**: JWT + API Key
-- **缓存**: Redis
-- **文档**: Django 自动生成 API 文档
-
-## 📦 安装与使用
-
-### 1. 环境准备
-
+### 1. 克隆项目
 ```bash
-# 克隆项目
-git clone <your-repo-url>
+git clone <repository-url>
 cd auditing
+```
 
-# 创建虚拟环境
+### 2. 后端设置
+
+#### 创建虚拟环境
+```bash
 python -m venv venv
 source venv/bin/activate  # Linux/Mac
-# 或 venv\Scripts\activate  # Windows
+# 或
+venv\Scripts\activate     # Windows
+```
 
-# 安装依赖
+#### 安装依赖
+```bash
 pip install -r requirements.txt
 ```
 
-### 2. 配置环境
-
+#### 数据库迁移
 ```bash
-# 复制环境变量配置
-cp env.example .env
-
-# 编辑 .env 文件配置数据库等信息
-```
-
-### 3. 数据库初始化
-
-```bash
-# 应用数据库迁移
+python manage.py makemigrations
 python manage.py migrate
-
-# 创建超级管理员
-python manage.py create_superadmin
 ```
 
-### 4. 启动开发服务器
-
+#### 创建超级用户
 ```bash
-python manage.py runserver
+python manage.py createsuperuser
 ```
 
-服务将在 `http://127.0.0.1:8000` 启动。
+#### 启动后端服务
+```bash
+python manage.py runserver 0.0.0.0:8000
+```
 
-## 🔑 默认管理员账户
+### 3. 前端设置
 
-- **邮箱**: admin@example.com
-- **密码**: admin123456
+#### 安装依赖
+```bash
+cd frontend
+npm install
+```
 
-### API Key获取方式
+#### 启动前端开发服务器
+```bash
+npm run dev
+```
 
-系统采用基于配额的API Key管理：
+### 4. 访问系统
 
-1. **创建模型组配额**: 超级管理员需要为用户分配模型组配额
-2. **自动生成API Key**: 每个【用户+模型组+配额】组合自动生成独立的API Key
-3. **细粒度权限控制**: 不同的模型组可以有不同的访问权限和配额限制
+- 前端界面: http://localhost:3000
+- 后端API: http://localhost:8000
+- API文档: http://localhost:8000/docs/
 
-> **重要**: 新的API Key管理方式实现了更细粒度的权限控制和数据隔离，每个模型组配额都有独立的API Key和使用记录
+## 🔐 默认账户
 
-## 📚 API 接口
+### 管理员账户
+- 邮箱: admin@example.com
+- 密码: admin123
 
-### 用户认证
+### 普通用户账户  
+- 邮箱: user@example.com
+- 密码: user123
+
+## 📖 API文档
+
+### OpenAPI规范
+系统提供完整的OpenAPI 3.0规范文档，包含所有API接口的详细说明。
+
+### 主要接口
+
+#### 认证接口
 - `POST /api/auth/login/` - 用户登录
 - `POST /api/auth/logout/` - 用户登出
-- `GET /api/quotas/` - 获取当前用户的配额信息
+- `POST /api/auth/change-password/` - 修改密码
 
-### 用户管理（超级管理员）
+#### 用户管理接口（管理员）
 - `GET /api/admin/users/` - 获取用户列表
 - `POST /api/admin/users/` - 创建用户
 - `PUT /api/admin/users/{id}/` - 更新用户
-- `POST /api/admin/users/{id}/reset-all-keys/` - 重置用户所有API Key
+- `DELETE /api/admin/users/{id}/` - 删除用户
 
-### 配额管理（超级管理员）
+#### 配额管理接口（管理员）
 - `GET /api/admin/quotas/` - 获取配额列表
-- `POST /api/admin/quotas/` - 创建用户配额
-- `POST /api/admin/quotas/{id}/reset_api_key/` - 重置单个配额的API Key
-- `GET /api/admin/quotas/{id}/requests/` - 获取配额下的所有请求记录
-- `GET /api/admin/quotas/{id}/statistics/` - 获取配额使用统计
+- `POST /api/admin/quotas/` - 创建配额
+- `PUT /api/admin/quotas/{id}/` - 更新配额
+- `POST /api/admin/quotas/{id}/reset_api_key/` - 重置API Key
 
-### 代理API（兼容OpenAI格式）
+#### OpenAI兼容接口
 - `POST /v1/chat/completions` - 聊天完成
 - `GET /v1/models` - 获取模型列表
 - `GET /v1/usage` - 查看使用情况
 
-## 🏗 项目结构
+## 🏗️ 系统架构
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   前端 (React)   │    │  后端 (Django)   │    │  数据库 (SQLite) │
+│                 │    │                 │    │                 │
+│ • 用户界面       │◄──►│ • REST API      │◄──►│ • 用户数据       │
+│ • 状态管理       │    │ • 权限控制       │    │ • 配额信息       │
+│ • 数据可视化     │    │ • API代理       │    │ • 使用记录       │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
+
+## 📁 项目结构
 
 ```
 auditing/
-├── apps/
-│   ├── users/          # 用户管理模块
-│   ├── apis/           # API管理模块  
-│   ├── ai_models/      # AI模型管理模块
-│   ├── groups/         # 模型组管理模块
-│   ├── quotas/         # 配额管理模块
-│   ├── proxy/          # API代理转发模块
-│   ├── billing/        # 计费审计模块
-│   └── dashboard/      # 仪表盘模块
-├── core/               # 核心配置
-├── utils/              # 工具函数
-├── requirements.txt    # 依赖列表
-└── README.md          # 项目说明
+├── apps/                   # Django应用
+│   ├── users/             # 用户管理
+│   ├── quotas/            # 配额管理
+│   └── apis/              # API代理
+├── frontend/              # React前端
+│   ├── src/
+│   │   ├── components/    # 公共组件
+│   │   ├── pages/         # 页面组件
+│   │   ├── services/      # API服务
+│   │   ├── stores/        # 状态管理
+│   │   └── types/         # 类型定义
+│   └── public/
+├── config/                # Django配置
+├── requirements.txt       # Python依赖
+├── openapi.yaml          # API文档
+└── README.md
 ```
 
-## 📊 数据模型
+## 🔧 配置说明
 
-系统包含以下核心数据模型：
+### 环境变量
+创建 `.env` 文件进行环境配置：
 
-- **User**: 用户信息（支持超级管理员）
-- **APIProvider**: API提供商配置
-- **AIModel**: AI模型信息与定价
-- **ModelGroup**: 模型分组
-- **UserQuota**: 用户配额管理
-- **APIRequest**: API请求记录
-- **BillingRecord**: 计费记录
+```env
+# Django设置
+SECRET_KEY=your-secret-key
+DEBUG=True
+ALLOWED_HOSTS=localhost,127.0.0.1
 
-详细的系统设计请查看 `SYSTEM_DESIGN.md`。
+# 数据库设置
+DATABASE_URL=sqlite:///db.sqlite3
 
-## 🤝 贡献
+# JWT设置
+JWT_SECRET_KEY=your-jwt-secret
+JWT_ACCESS_TOKEN_LIFETIME=60  # 分钟
+JWT_REFRESH_TOKEN_LIFETIME=1440  # 分钟
 
-欢迎提交 Issue 和 Pull Request！
+# AI服务设置
+OPENAI_API_KEY=your-openai-api-key
+ANTHROPIC_API_KEY=your-anthropic-api-key
+```
 
-## �� 许可证
+### 数据库配置
+默认使用SQLite，生产环境建议使用PostgreSQL：
 
-MIT License 
+```python
+# settings.py
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'auditing_db',
+        'USER': 'your_user',
+        'PASSWORD': 'your_password',
+        'HOST': 'localhost',
+        'PORT': '5432',
+    }
+}
+```
+
+## 🚀 部署指南
+
+### Docker部署
+```bash
+# 构建镜像
+docker build -t auditing-system .
+
+# 运行容器
+docker run -p 8000:8000 -p 3000:3000 auditing-system
+```
+
+### 生产环境部署
+1. 使用Nginx作为反向代理
+2. 使用Gunicorn作为WSGI服务器
+3. 使用PostgreSQL作为数据库
+4. 配置SSL证书
+5. 设置环境变量
+
+## 📊 监控与日志
+
+### 系统监控
+- API请求监控
+- 配额使用监控
+- 错误率统计
+- 性能指标
+
+### 日志记录
+- 用户操作日志
+- API调用日志
+- 错误日志
+- 系统日志
+
+## 🤝 贡献指南
+
+1. Fork项目
+2. 创建功能分支
+3. 提交更改
+4. 推送到分支
+5. 创建Pull Request
+
+## 📄 许可证
+
+本项目采用MIT许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
+
+## 📞 支持
+
+如有问题或建议，请联系：
+- 邮箱: admin@example.com
+- Issues: [GitHub Issues](https://github.com/your-repo/issues)
+
+## 🗺️ 开发路线图
+
+- [ ] 支持更多AI模型厂商
+- [ ] 实时WebSocket通知
+- [ ] 高级报表分析
+- [ ] 移动端APP
+- [ ] 插件系统
+- [ ] 多语言支持 

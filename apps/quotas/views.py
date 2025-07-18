@@ -24,6 +24,13 @@ class UserQuotaViewSet(ModelViewSet):
     queryset = UserQuota.objects.all().select_related('user', 'model_group')
     permission_classes = [IsSuperAdminUser]
     
+    def get_queryset(self):
+        """默认不显示已删除的配额，除非指定include_deleted参数"""
+        queryset = super().get_queryset()
+        if self.request.query_params.get('include_deleted', '').lower() == 'true':
+            return queryset  # 显示所有配额包括已删除的
+        return queryset.filter(deleted_at__isnull=True)  # 只显示未删除的
+    
     def get_serializer_class(self):
         if self.action == 'create':
             return UserQuotaCreateSerializer
@@ -34,6 +41,32 @@ class UserQuotaViewSet(ModelViewSet):
         with transaction.atomic():
             quota = serializer.save()
             return quota
+    
+    def destroy(self, request, *args, **kwargs):
+        """软删除配额而不是真正删除"""
+        quota = self.get_object()
+        quota.soft_delete()
+        return Response({
+            'message': f'配额 "{quota.name}" 已删除，API Key已禁用，聊天记录已保留',
+            'quota_id': quota.id,
+            'deleted_at': quota.deleted_at.isoformat()
+        }, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['post'])
+    def restore(self, request, pk=None):
+        """恢复已删除的配额"""
+        # 需要从完整查询集中获取对象（包括已删除的）
+        quota = UserQuota.objects.select_related('user', 'model_group').get(pk=pk)
+        if not quota.is_deleted:
+            return Response({
+                'error': '该配额未被删除，无需恢复'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        quota.restore()
+        return Response({
+            'message': f'配额 "{quota.name}" 已恢复',
+            'quota_id': quota.id
+        })
     
     @action(detail=True, methods=['post'])
     def reset_api_key(self, request, pk=None):

@@ -25,6 +25,10 @@ urlpatterns = [
     # API路由
     path('api/', include('apps.users.urls')),
     path('api/', include('apps.quotas.urls')),
+    path('api/admin/', include('apps.apis.urls')),
+    path('api/admin/', include('apps.ai_models.urls')),
+    path('api/admin/', include('apps.groups.urls')),
+    path('api/admin/', include('apps.billing.urls')),  # 添加billing应用路由
     
     # 用户代理API (兼容OpenAI格式)
     path('v1/', include('apps.proxy.urls')),

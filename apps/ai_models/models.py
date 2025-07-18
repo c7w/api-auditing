@@ -17,15 +17,15 @@ class AIModel(models.Model):
     display_name = models.CharField('显示名称', max_length=100)
     description = models.TextField('模型描述', blank=True)
     
-    # 定价信息 (参考OpenRouter)
-    input_price_per_1k = models.DecimalField(
-        '输入价格($/1k tokens)', 
+    # 定价信息 (按OpenAI标准: 每1M tokens)
+    input_price_per_1m = models.DecimalField(
+        '输入价格($/1M tokens)', 
         max_digits=10, 
         decimal_places=6,
         default=Decimal('0.000000')
     )
-    output_price_per_1k = models.DecimalField(
-        '输出价格($/1k tokens)', 
+    output_price_per_1m = models.DecimalField(
+        '输出价格($/1M tokens)', 
         max_digits=10, 
         decimal_places=6,
         default=Decimal('0.000000')
@@ -81,8 +81,8 @@ class AIModel(models.Model):
     
     def calculate_cost(self, input_tokens, output_tokens):
         """计算调用成本"""
-        input_cost = (Decimal(input_tokens) / Decimal('1000')) * self.input_price_per_1k
-        output_cost = (Decimal(output_tokens) / Decimal('1000')) * self.output_price_per_1k
+        input_cost = (Decimal(input_tokens) / Decimal('1000000')) * self.input_price_per_1m
+        output_cost = (Decimal(output_tokens) / Decimal('1000000')) * self.output_price_per_1m
         return input_cost + output_cost
     
     @classmethod
