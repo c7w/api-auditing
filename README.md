@@ -1,4 +1,5 @@
-> Code is cheap, show my the talk.
+> Code is cheap, show me the talk.
+> 
 > Prompt see PROMPT.md
 
 # Token API 审计与管理系统
