@@ -13,6 +13,7 @@ import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useAuthStore } from '@/stores';
 import { AuthService } from '@/services';
 import { PageHeader } from '@/components';
+import { handleFormError } from '@/utils/errorHandler';
 
 export const Profile: React.FC = () => {
   const { user, updateUser } = useAuthStore();
@@ -47,22 +48,17 @@ export const Profile: React.FC = () => {
 
   // 修改密码
   const handleChangePassword = async (values: any) => {
-    if (values.new_password !== values.confirm_password) {
-      message.error('新密码与确认密码不匹配');
-      return;
-    }
-
     try {
       await AuthService.changePassword({
         old_password: values.old_password,
         new_password: values.new_password,
-        confirm_password: values.confirm_password,
+        new_password_confirm: values.new_password_confirm, // 保持字段名一致
       });
       
       message.success('密码修改成功');
       passwordForm.resetFields();
-    } catch (error) {
-      message.error('密码修改失败');
+    } catch (error: any) {
+      handleFormError(error, passwordForm, '密码修改失败');
     }
   };
 

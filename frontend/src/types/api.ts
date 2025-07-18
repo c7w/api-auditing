@@ -59,12 +59,6 @@ export interface UserUpdateRequest {
   is_active?: boolean;
 }
 
-export interface PasswordChangeRequest {
-  old_password: string;
-  new_password: string;
-  new_password_confirm: string;
-}
-
 // 配额相关类型
 export interface UserQuota {
   id: number;

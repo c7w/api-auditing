@@ -25,6 +25,7 @@ import {
 import { PageHeader } from '@/components';
 import { User } from '@/types';
 import { UserService } from '@/services';
+import { handleFormError } from '@/utils/errorHandler';
 
 const { Search } = Input;
 const { Text } = Typography;
@@ -130,18 +131,14 @@ export const UserManagement: React.FC = () => {
         message.success('用户更新成功');
       } else {
         // 创建用户
-        if (!values.password_confirm || values.password !== values.password_confirm) {
-          message.error('两次输入的密码不一致');
-          return;
-        }
         await UserService.createUser(values);
         message.success('用户创建成功');
         loadUsers(); // 重新加载列表
       }
       
       setIsModalVisible(false);
-    } catch (error) {
-      message.error('操作失败');
+    } catch (error: any) {
+      handleFormError(error, form, editingUser ? '用户更新失败' : '用户创建失败');
     }
   };
 
@@ -164,8 +161,8 @@ export const UserManagement: React.FC = () => {
         setPasswordModalVisible(false);
         passwordForm.resetFields();
       }
-    } catch (error) {
-      message.error('密码重置失败');
+    } catch (error: any) {
+      handleFormError(error, passwordForm, '密码重置失败');
     }
   };
 

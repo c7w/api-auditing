@@ -199,7 +199,7 @@ export interface LoginResponse {
 export interface PasswordChangeRequest {
   old_password: string;
   new_password: string;
-  confirm_password: string;
+  new_password_confirm: string;
 }
 
 // 通用分页响应类型
