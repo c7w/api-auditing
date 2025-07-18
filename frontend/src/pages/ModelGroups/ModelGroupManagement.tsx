@@ -102,7 +102,7 @@ export const ModelGroupManagement: React.FC = () => {
     form.setFieldsValue({
       name: group.name,
       description: group.description,
-      models: group.ai_models,
+      models: group.model_ids,
       default_quota: parseFloat(group.default_quota),
       is_active: group.is_active,
     });

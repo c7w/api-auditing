@@ -167,7 +167,7 @@ export interface ModelGroup {
   id: number;
   name: string;
   description: string;
-  ai_models: number[];
+  model_ids: number[];
   default_quota: string;
   is_public: boolean;
   allowed_users: number[];

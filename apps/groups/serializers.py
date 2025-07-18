@@ -8,15 +8,20 @@ class ModelGroupSerializer(serializers.ModelSerializer):
     model_count = serializers.SerializerMethodField()
     models_info = serializers.SerializerMethodField()
     model_names = serializers.SerializerMethodField()
+    model_ids = serializers.SerializerMethodField()
     
     class Meta:
         model = ModelGroup
         fields = [
-            'id', 'name', 'description', 'ai_models', 'default_quota',
+            'id', 'name', 'description', 'model_ids', 'default_quota',
             'is_public', 'allowed_users', 'is_active', 'created_at', 
             'updated_at', 'model_count', 'models_info', 'model_names'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at', 'model_count', 'models_info', 'model_names']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'model_count', 'models_info', 'model_names', 'model_ids']
+    
+    def get_model_ids(self, obj):
+        """获取关联的模型ID列表"""
+        return list(obj.ai_models.values_list('id', flat=True))
     
     def get_model_count(self, obj):
         return obj.get_model_count()
@@ -42,11 +47,17 @@ class ModelGroupCreateSerializer(serializers.ModelSerializer):
     model_count = serializers.SerializerMethodField()
     models_info = serializers.SerializerMethodField()
     model_names = serializers.SerializerMethodField()
+    model_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        write_only=True,
+        required=False,
+        help_text='模型ID列表'
+    )
     
     class Meta:
         model = ModelGroup
         fields = [
-            'id', 'name', 'description', 'ai_models', 'default_quota',
+            'id', 'name', 'description', 'model_ids', 'default_quota',
             'is_public', 'allowed_users', 'is_active', 'created_at', 
             'updated_at', 'model_count', 'models_info', 'model_names'
         ]
@@ -69,6 +80,19 @@ class ModelGroupCreateSerializer(serializers.ModelSerializer):
     def get_model_names(self, obj):
         """获取模型名称列表用于表格显示"""
         return [model.display_name for model in obj.ai_models.all()]
+    
+    def create(self, validated_data):
+        """创建模型组时处理model_ids字段"""
+        model_ids = validated_data.pop('model_ids', [])
+        instance = super().create(validated_data)
+        
+        # 设置模型关联
+        if model_ids:
+            from apps.ai_models.models import AIModel
+            models = AIModel.objects.filter(id__in=model_ids)
+            instance.ai_models.set(models)
+        
+        return instance
 
 
 class ModelGroupUpdateSerializer(serializers.ModelSerializer):
@@ -76,11 +100,17 @@ class ModelGroupUpdateSerializer(serializers.ModelSerializer):
     model_count = serializers.SerializerMethodField()
     models_info = serializers.SerializerMethodField()
     model_names = serializers.SerializerMethodField()
+    model_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        write_only=True,
+        required=False,
+        help_text='模型ID列表'
+    )
     
     class Meta:
         model = ModelGroup
         fields = [
-            'id', 'name', 'description', 'ai_models', 'default_quota',
+            'id', 'name', 'description', 'model_ids', 'default_quota',
             'is_public', 'allowed_users', 'is_active', 'created_at', 
             'updated_at', 'model_count', 'models_info', 'model_names'
         ]
@@ -102,4 +132,17 @@ class ModelGroupUpdateSerializer(serializers.ModelSerializer):
     
     def get_model_names(self, obj):
         """获取模型名称列表用于表格显示"""
-        return [model.display_name for model in obj.ai_models.all()] 
+        return [model.display_name for model in obj.ai_models.all()]
+    
+    def update(self, instance, validated_data):
+        """更新模型组时处理model_ids字段"""
+        model_ids = validated_data.pop('model_ids', None)
+        updated_instance = super().update(instance, validated_data)
+        
+        # 如果提供了model_ids，则更新模型关联
+        if model_ids is not None:
+            from apps.ai_models.models import AIModel
+            models = AIModel.objects.filter(id__in=model_ids)
+            updated_instance.ai_models.set(models)
+        
+        return updated_instance 
