@@ -144,16 +144,40 @@ export const Dashboard: React.FC = () => {
         content: (
           <div>
             <p><strong>模型组:</strong> {result.model_group}</p>
+            
+            <p><strong>API Base URL:</strong></p>
+            <Input
+              value={`${window.location.origin}/v1`}
+              readOnly
+              style={{ 
+                fontFamily: 'Consolas, Monaco, "Courier New", monospace', 
+                fontSize: '12px',
+                backgroundColor: '#f5f5f5',
+                marginBottom: 12
+              }}
+            />
+            
             <p><strong>新的API Key:</strong></p>
             <Input.TextArea
               value={result.api_key}
               readOnly
-              rows={2}
-              style={{ fontFamily: 'monospace', fontSize: '12px' }}
+              rows={3}
+              style={{ 
+                fontFamily: 'Consolas, Monaco, "Courier New", monospace', 
+                fontSize: '12px',
+                backgroundColor: '#f5f5f5',
+                marginBottom: 12
+              }}
             />
-            <p style={{ color: '#666', marginTop: 8 }}>
-              请妥善保存新的API Key，刷新页面后将无法再次查看完整密钥。
-            </p>
+            <div style={{ 
+              padding: '12px', 
+              backgroundColor: '#fff3cd', 
+              border: '1px solid #ffeaa7',
+              borderRadius: '4px',
+              fontSize: '12px'
+            }}>
+              ⚠️ 请妥善保管您的API Key，不要在不安全的环境中分享。刷新页面后将无法再次查看完整密钥。
+            </div>
           </div>
         ),
         width: 600,
@@ -166,45 +190,12 @@ export const Dashboard: React.FC = () => {
   };
 
   const handleViewApiKey = async (quotaId: number) => {
-    console.log('开始查看API Key，配额ID:', quotaId);
     try {
       const result = await QuotaService.getUserApiKey(quotaId);
-      console.log('API Key查看结果:', result);
       
       // 设置数据并显示状态控制的Modal
       setCurrentApiKeyData(result);
       setApiKeyModalVisible(true);
-      
-      // 同时尝试 Modal.info（调试用）
-      setTimeout(() => {
-        const modal = Modal.info({
-          title: 'API密钥详情 (调试)',
-          icon: null,
-          content: (
-            <div style={{ marginTop: 16 }}>
-              <div style={{ marginBottom: 12 }}>
-                <Text strong>模型组:</Text> {result.model_group}
-              </div>
-              <div style={{ marginBottom: 12 }}>
-                <Text strong>完整API Key:</Text>
-              </div>
-              <Input.TextArea
-                value={result.api_key}
-                readOnly
-                rows={3}
-                style={{ 
-                  fontFamily: 'Consolas, Monaco, "Courier New", monospace', 
-                  fontSize: '12px',
-                  backgroundColor: '#f5f5f5'
-                }}
-              />
-            </div>
-          ),
-          width: 600,
-          okText: '关闭调试窗口',
-        });
-        console.log('调试Modal已创建:', modal);
-      }, 100);
       
     } catch (error) {
       console.error('获取API密钥失败:', error);
@@ -560,6 +551,21 @@ export const Dashboard: React.FC = () => {
             <div style={{ marginBottom: 16 }}>
               <Text strong>模型组:</Text> {currentApiKeyData.model_group}
             </div>
+            
+            <div style={{ marginBottom: 8 }}>
+              <Text strong>API Base URL:</Text>
+            </div>
+            <Input
+              value={`${window.location.origin}/v1`}
+              readOnly
+              style={{ 
+                fontFamily: 'Consolas, Monaco, "Courier New", monospace', 
+                fontSize: '12px',
+                backgroundColor: '#f5f5f5',
+                marginBottom: 16
+              }}
+            />
+            
             <div style={{ marginBottom: 8 }}>
               <Text strong>完整API Key:</Text>
             </div>
