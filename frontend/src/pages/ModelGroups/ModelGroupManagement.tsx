@@ -72,7 +72,13 @@ export const ModelGroupManagement: React.FC = () => {
   const loadModels = async () => {
     try {
       const response = await ModelService.getModels({ page_size: 1000, is_active: true });
-      setModels(response.results);
+      // 确保模型 ID 是数字类型
+      const processedModels = response.results.map((model: AIModel) => ({
+        ...model,
+        id: typeof model.id === 'string' ? parseInt(model.id, 10) : model.id
+      }));
+      console.log('加载的模型数据:', processedModels.slice(0, 3)); // 只打印前3个用于调试
+      setModels(processedModels);
     } catch (error) {
       console.error('Failed to load models:', error);
     }
@@ -98,11 +104,22 @@ export const ModelGroupManagement: React.FC = () => {
   };
 
   const handleEditGroup = (group: ModelGroup) => {
+    console.log('编辑模型组数据:', group);
+    console.log('model_ids 类型:', typeof group.model_ids, 'model_ids 值:', group.model_ids);
+    
     setEditingGroup(group);
+    
+    // 确保 model_ids 是数组
+    let modelIds = group.model_ids;
+    if (!Array.isArray(modelIds)) {
+      console.warn('model_ids 不是数组，尝试转换:', modelIds);
+      modelIds = [];
+    }
+    
     form.setFieldsValue({
       name: group.name,
       description: group.description,
-      models: group.model_ids,
+      models: modelIds,
       default_quota: parseFloat(group.default_quota),
       is_active: group.is_active,
     });
@@ -113,14 +130,38 @@ export const ModelGroupManagement: React.FC = () => {
     try {
       const values = await form.validateFields();
       
+      console.log('表单原始值:', values);
+      
+      // 确保 models 是整数数组
+      let modelIds = values.models || [];
+      if (!Array.isArray(modelIds)) {
+        console.error('models 字段不是数组:', modelIds);
+        message.error('模型选择数据格式错误，请重新选择');
+        return;
+      }
+      
+      // 确保数组中的每个元素都是数字
+      modelIds = modelIds.map(id => {
+        const numId = typeof id === 'string' ? parseInt(id, 10) : id;
+        if (isNaN(numId)) {
+          console.error('无效的模型ID:', id);
+          throw new Error('模型ID格式错误');
+        }
+        return numId;
+      });
+      
+      console.log('处理后的 model_ids:', modelIds);
+      
       // 转换数据格式，将models字段映射为model_ids
       const groupData = {
         name: values.name,
         description: values.description,
-        model_ids: values.models, // 将models字段转换为model_ids
+        model_ids: modelIds, // 确保是整数数组
         default_quota: values.default_quota.toString(),
         is_active: values.is_active,
       };
+      
+      console.log('提交的数据:', groupData);
 
       if (editingGroup) {
         // 更新模型组
@@ -331,7 +372,36 @@ export const ModelGroupManagement: React.FC = () => {
 
           <Form.Item
             name="models"
-            label="包含模型"
+            label={
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>包含模型</span>
+                <Space>
+                  <Button 
+                    type="link" 
+                    size="small"
+                    disabled={models.length === 0}
+                    onClick={() => {
+                      const allModelIds = models.map(model => model.id);
+                      console.log('全选模型 IDs:', allModelIds);
+                      console.log('模型 IDs 类型:', allModelIds.map(id => typeof id));
+                      form.setFieldValue('models', allModelIds);
+                    }}
+                  >
+                    全选 ({models.length})
+                  </Button>
+                  <Button 
+                    type="link" 
+                    size="small"
+                    disabled={models.length === 0}
+                    onClick={() => {
+                      form.setFieldValue('models', []);
+                    }}
+                  >
+                    清空
+                  </Button>
+                </Space>
+              </div>
+            }
             rules={[{ required: true, message: '请选择至少一个模型' }]}
           >
             <Select
@@ -339,6 +409,33 @@ export const ModelGroupManagement: React.FC = () => {
               placeholder="选择要包含的AI模型"
               showSearch
               optionFilterProp="children"
+              style={{ width: '100%' }}
+              maxTagCount="responsive"
+              allowClear
+              filterOption={(input, option) =>
+                String(option?.children || '').toLowerCase().includes(input.toLowerCase())
+              }
+              notFoundContent="未找到匹配的模型"
+              dropdownStyle={{ maxHeight: 400, overflow: 'auto' }}
+              onChange={(values: number[]) => {
+                // 确保只有有效的数字 ID 被选择
+                const validModelIds = models.map(m => m.id);
+                const filteredValues = (values || []).filter((value: number) => 
+                  validModelIds.includes(value)
+                );
+                console.log('Select onChange - 原始值:', values, '过滤后值:', filteredValues);
+                if (filteredValues.length !== (values || []).length) {
+                  message.warning('已过滤无效的选项，请从下拉列表中选择');
+                  form.setFieldValue('models', filteredValues);
+                }
+              }}
+              onInputKeyDown={(e) => {
+                // 防止用户按回车键添加自定义值
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  // message.info('请从下拉列表中选择模型，不支持自定义输入');
+                }
+              }}
             >
               {models.map(model => (
                 <Select.Option key={model.id} value={model.id}>
@@ -346,6 +443,30 @@ export const ModelGroupManagement: React.FC = () => {
                 </Select.Option>
               ))}
             </Select>
+          </Form.Item>
+
+          {/* 选择状态显示 */}
+          <Form.Item 
+            dependencies={['models']} 
+            noStyle
+          >
+            {({ getFieldValue }) => {
+              const selectedModels = getFieldValue('models') || [];
+              return (
+                <div style={{ 
+                  marginTop: '-16px',
+                  marginBottom: '16px',
+                  fontSize: '12px', 
+                  color: '#666',
+                  textAlign: 'right' 
+                }}>
+                  已选择 {selectedModels.length} / {models.length} 个模型
+                  {selectedModels.length === models.length && (
+                    <span style={{ color: '#52c41a', marginLeft: '8px' }}>✓ 已全选</span>
+                  )}
+                </div>
+              );
+            }}
           </Form.Item>
 
           <Form.Item

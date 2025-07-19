@@ -138,11 +138,20 @@ export interface APIRequest {
   request_id: string;
   user: number;
   user_name: string;
-  model: number;
+  model: number | null;  // 可能为 null（当模型被删除时）
+  model_group: number | null;  // 可能为 null（当模型组被删除时）
+  
+  // 快照字段（保留原始信息）
   model_name: string;
-  model_display_name: string;
-  model_group: number;
+  model_provider_name: string;
   model_group_name: string;
+  
+  // 显示字段（优先使用快照，fallback 到外键）
+  model_name_display: string;
+  model_display_name: string;
+  model_provider_name_display: string;
+  model_group_name_display: string;
+  
   method: string;
   endpoint: string;
   request_data: Record<string, any>;

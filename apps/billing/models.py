@@ -12,8 +12,13 @@ class APIRequest(models.Model):
     
     # 用户和模型信息
     user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='api_requests')
-    model = models.ForeignKey('ai_models.AIModel', on_delete=models.PROTECT, related_name='requests')
-    model_group = models.ForeignKey('groups.ModelGroup', on_delete=models.PROTECT, related_name='requests', null=True)
+    model = models.ForeignKey('ai_models.AIModel', on_delete=models.SET_NULL, related_name='requests', null=True)
+    model_group = models.ForeignKey('groups.ModelGroup', on_delete=models.SET_NULL, related_name='requests', null=True)
+    
+    # 模型信息快照（保留原始信息，即使外键被删除）
+    model_name = models.CharField('模型名称', max_length=200, blank=True, help_text='保留的模型名称')
+    model_provider_name = models.CharField('提供商名称', max_length=200, blank=True, help_text='保留的提供商名称')
+    model_group_name = models.CharField('模型组名称', max_length=200, blank=True, help_text='保留的模型组名称')
     
     # 请求信息
     method = models.CharField('请求方法', max_length=10, default='POST')
@@ -65,12 +70,23 @@ class APIRequest(models.Model):
     
     def calculate_cost(self):
         """计算并更新成本"""
-        self.input_cost = (Decimal(self.input_tokens) / Decimal('1000')) * self.model.input_price_per_1k
-        self.output_cost = (Decimal(self.output_tokens) / Decimal('1000')) * self.model.output_price_per_1k
-        self.total_cost = self.input_cost + self.output_cost
+        if self.model:
+            self.input_cost = (Decimal(self.input_tokens) / Decimal('1000000')) * self.model.input_price_per_1m
+            self.output_cost = (Decimal(self.output_tokens) / Decimal('1000000')) * self.model.output_price_per_1m
+            self.total_cost = self.input_cost + self.output_cost
         self.total_tokens = self.input_tokens + self.output_tokens
         
+    def _populate_snapshot_fields(self):
+        """填充快照字段"""
+        if self.model and not self.model_name:
+            self.model_name = self.model.name
+            self.model_provider_name = self.model.provider.name if self.model.provider else ''
+        if self.model_group and not self.model_group_name:
+            self.model_group_name = self.model_group.name
+        
     def save(self, *args, **kwargs):
+        # 填充快照字段
+        self._populate_snapshot_fields()
         # 自动计算成本
         if not self.total_cost:
             self.calculate_cost()

@@ -187,16 +187,39 @@ export const ChatRecordsManagement: React.FC = () => {
       ),
     },
     {
-      title: '模型',
+      title: '模型信息',
       key: 'model_info',
-      width: 200,
+      width: 220,
       render: (_, record) => (
         <div>
-          <Text strong>{record.model_display_name}</Text>
-          <br />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Text strong>{record.model_display_name}</Text>
+            {record.model === null && (
+              <Tag color="red">已删除</Tag>
+            )}
+          </div>
           <Text type="secondary" style={{ fontSize: '12px' }}>
-            {record.model_name}
+            {record.model_name_display}
           </Text>
+          <br />
+          <Text type="secondary" style={{ fontSize: '11px', color: '#999' }}>
+            提供商: {record.model_provider_name_display}
+          </Text>
+        </div>
+      ),
+    },
+    {
+      title: '模型组',
+      key: 'model_group_info',
+      width: 120,
+      render: (_, record) => (
+        <div>
+          <Text strong>{record.model_group_name_display}</Text>
+          {record.model_group === null && (
+            <div>
+              <Tag color="red">已删除</Tag>
+            </div>
+          )}
         </div>
       ),
     },
@@ -456,7 +479,7 @@ export const ChatRecordsManagement: React.FC = () => {
           dataSource={records}
           rowKey="id"
           loading={loading}
-          scroll={{ x: 1200 }}
+          scroll={{ x: 1350 }}
           pagination={{
             current: pagination.current,
             pageSize: pagination.pageSize,
@@ -490,7 +513,19 @@ export const ChatRecordsManagement: React.FC = () => {
                 <Card title="基本信息" size="small">
                   <p><strong>请求ID:</strong> {selectedRecord.request_id}</p>
                   <p><strong>用户:</strong> {selectedRecord.user_name} (ID: {selectedRecord.user})</p>
-                  <p><strong>模型:</strong> {selectedRecord.model_display_name}</p>
+                  <p>
+                    <strong>模型:</strong> {selectedRecord.model_display_name}
+                    {selectedRecord.model === null && (
+                      <Tag color="red" style={{ marginLeft: 8 }}>已删除</Tag>
+                    )}
+                  </p>
+                  <p><strong>提供商:</strong> {selectedRecord.model_provider_name_display}</p>
+                  <p>
+                    <strong>模型组:</strong> {selectedRecord.model_group_name_display}
+                    {selectedRecord.model_group === null && (
+                      <Tag color="red" style={{ marginLeft: 8 }}>已删除</Tag>
+                    )}
+                  </p>
                   <p><strong>请求方法:</strong> {selectedRecord.method}</p>
                   <p><strong>端点:</strong> {selectedRecord.endpoint}</p>
                   <p><strong>IP地址:</strong> {selectedRecord.ip_address}</p>
@@ -514,6 +549,38 @@ export const ChatRecordsManagement: React.FC = () => {
                 </Card>
               </Col>
             </Row>
+
+            {/* 数据完整性信息 */}
+            <Card title="数据完整性" size="small" style={{ marginTop: 16 }}>
+              <Row gutter={[16, 16]}>
+                <Col span={8}>
+                  <div>
+                    <Text strong>模型状态:</Text>
+                    {selectedRecord.model ? (
+                      <Tag color="green" style={{ marginLeft: 8 }}>正常引用</Tag>
+                    ) : (
+                      <Tag color="red" style={{ marginLeft: 8 }}>已删除，使用快照</Tag>
+                    )}
+                  </div>
+                </Col>
+                <Col span={8}>
+                  <div>
+                    <Text strong>模型组状态:</Text>
+                    {selectedRecord.model_group ? (
+                      <Tag color="green" style={{ marginLeft: 8 }}>正常引用</Tag>
+                    ) : (
+                      <Tag color="red" style={{ marginLeft: 8 }}>已删除，使用快照</Tag>
+                    )}
+                  </div>
+                </Col>
+                <Col span={8}>
+                  <div>
+                    <Text strong>原始模型名:</Text>
+                    <Text code style={{ marginLeft: 8 }}>{selectedRecord.model_name}</Text>
+                  </div>
+                </Col>
+              </Row>
+            </Card>
             
             {selectedRecord.error_type && (
               <Card title="错误信息" size="small" style={{ marginTop: 16 }}>

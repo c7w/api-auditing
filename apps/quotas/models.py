@@ -40,7 +40,7 @@ class UserQuota(models.Model):
     
     # 用户和模型组
     user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='quotas')
-    model_group = models.ForeignKey('groups.ModelGroup', on_delete=models.PROTECT, related_name='quotas')
+    model_group = models.ForeignKey('groups.ModelGroup', on_delete=models.CASCADE, related_name='quotas')
     
     # API密钥
     api_key = models.CharField('API密钥', max_length=100, unique=True, default=generate_api_key)
