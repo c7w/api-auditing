@@ -39,7 +39,7 @@ class ModelGroupSerializer(serializers.ModelSerializer):
     
     def get_model_names(self, obj):
         """获取模型名称列表用于表格显示"""
-        return [model.display_name for model in obj.ai_models.all()]
+        return [f"[{model.provider.name}] {model.display_name}" for model in obj.ai_models.select_related('provider').all()]
 
 
 class ModelGroupCreateSerializer(serializers.ModelSerializer):
@@ -79,7 +79,7 @@ class ModelGroupCreateSerializer(serializers.ModelSerializer):
     
     def get_model_names(self, obj):
         """获取模型名称列表用于表格显示"""
-        return [model.display_name for model in obj.ai_models.all()]
+        return [f"[{model.provider.name}] {model.display_name}" for model in obj.ai_models.select_related('provider').all()]
     
     def create(self, validated_data):
         """创建模型组时处理model_ids字段"""
@@ -132,7 +132,7 @@ class ModelGroupUpdateSerializer(serializers.ModelSerializer):
     
     def get_model_names(self, obj):
         """获取模型名称列表用于表格显示"""
-        return [model.display_name for model in obj.ai_models.all()]
+        return [f"[{model.provider.name}] {model.display_name}" for model in obj.ai_models.select_related('provider').all()]
     
     def update(self, instance, validated_data):
         """更新模型组时处理model_ids字段"""

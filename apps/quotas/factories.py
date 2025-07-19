@@ -24,14 +24,10 @@ class UserQuotaFactory(factory.django.DjangoModelFactory):
     model_group = factory.SubFactory(ModelGroupFactory)
     total_quota = factory.LazyFunction(lambda: Decimal(str(fake.random_int(min=100, max=1000))))
     used_quota = factory.LazyFunction(lambda: Decimal('0.000000'))
-    period_type = 'monthly'
-    period_start = factory.LazyFunction(lambda: timezone.now())
-    expires_at = factory.LazyFunction(lambda: timezone.now() + timezone.timedelta(days=30))
     rate_limit_per_minute = 60
     rate_limit_per_hour = 3600
     rate_limit_per_day = 86400
     is_active = True
-    auto_renew = False
 
 class QuotaUsageLogFactory(factory.django.DjangoModelFactory):
     class Meta:

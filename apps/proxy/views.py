@@ -46,24 +46,26 @@ class ChatCompletionView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # 查找模型
-            try:
-                ai_model = AIModel.objects.select_related('provider').get(
-                    name=model_name,
-                    provider__is_active=True
-                )
-            except AIModel.DoesNotExist:
+            # 查找模型（在用户配额范围内，按价格优先选择最便宜的）
+            available_models = current_quota.model_group.ai_models.filter(
+                name=model_name,
+                provider__is_active=True
+            ).select_related('provider').order_by('input_price_per_1m', 'output_price_per_1m')
+            
+            if not available_models.exists():
                 return Response(
-                    {'error': f'Model "{model_name}" not found or not available'}, 
+                    {'error': f'Model "{model_name}" not found or not available in your plan'}, 
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # 检查模型是否在用户的配额中
-            if not current_quota.model_group.ai_models.filter(id=ai_model.id).exists():
-                return Response(
-                    {'error': f'Model "{model_name}" not available in your plan'}, 
-                    status=status.HTTP_403_FORBIDDEN
-                )
+            # 选择最便宜的模型（按输入价格排序，如果输入价格相同则按输出价格排序）
+            ai_model = available_models.first()
+            
+            # 如果有多个同名模型，记录选择的逻辑
+            if available_models.count() > 1:
+                logger.info(f"Found {available_models.count()} models named '{model_name}', selected cheapest: "
+                           f"{ai_model.provider.name} (input: ${ai_model.input_price_per_1m}/1M, "
+                           f"output: ${ai_model.output_price_per_1m}/1M)")
             
             # 检查配额是否充足（基于美元额度）
             if current_quota.used_quota >= current_quota.total_quota:

@@ -459,7 +459,7 @@ export const Dashboard: React.FC = () => {
                                 <Tag color="purple">{model.model_type}</Tag>
                               </div>
                               <div style={{ marginBottom: 8 }}>
-                                <Text strong style={{ fontSize: '14px' }}>{model.display_name}</Text>
+                                <Text strong style={{ fontSize: '14px' }}>[{model.provider_name}] {model.display_name}</Text>
                                 <br />
                                 <Text code style={{ fontSize: '12px' }}>{model.name}</Text>
                               </div>

@@ -25,8 +25,8 @@ def user_quota():
         provider=provider,
         name='gpt-4o',
         display_name='GPT-4 Optimized',
-        input_price_per_1k='0.010000',
-        output_price_per_1k='0.030000'
+        input_price_per_1m='0.000010',
+        output_price_per_1m='0.000030'
     )
     quota.model_group.ai_models.add(model)
     return quota
@@ -147,3 +147,81 @@ class TestOpenAICompatibleViews:
         response = api_client.post(url, data, format='json')
         
         assert response.status_code == status.HTTP_401_UNAUTHORIZED 
+
+    def test_chat_completion_multiple_same_name_models_selects_cheapest(self, api_client, user_quota, mocker):
+        """测试当存在多个同名模型时，选择最便宜的那个"""
+        from apps.apis.models import APIProvider
+        from apps.ai_models.models import AIModel
+        from decimal import Decimal
+
+        # Mock外部API调用
+        mock_response = mocker.Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            'id': 'chatcmpl-123',
+            'object': 'chat.completion',
+            'created': 1677858242,
+            'model': 'gpt-4o',
+            'usage': {
+                'prompt_tokens': 10,
+                'completion_tokens': 20,
+                'total_tokens': 30
+            },
+            'choices': [
+                {
+                    'index': 0,
+                    'message': {
+                        'role': 'assistant',
+                        'content': 'Hello! How can I help you today?'
+                    },
+                    'finish_reason': 'stop'
+                }
+            ]
+        }
+        mocker.patch('requests.post', return_value=mock_response)
+
+        # 创建第二个提供商（更贵的）
+        expensive_provider = APIProvider.objects.create(
+            name='Expensive Provider',
+            base_url='https://expensive-api.com/v1',
+            api_key='expensive-key-123',
+            is_active=True
+        )
+
+        # 创建同名但更贵的模型
+        expensive_model = AIModel.objects.create(
+            provider=expensive_provider,
+            name='gpt-4o',  # 与测试模型同名
+            display_name='Expensive GPT-4',
+            input_price_per_1m=Decimal('100.000000'),  # 比默认模型贵
+            output_price_per_1m=Decimal('200.000000'),  # 比默认模型贵
+            context_length=8192,
+            model_type='chat',
+            is_active=True
+        )
+
+        # 将贵的模型也添加到模型组中
+        user_quota.model_group.ai_models.add(expensive_model)
+        
+        # 发送请求
+        response = api_client.post(
+            '/v1/chat/completions',
+            data={
+                'model': 'gpt-4o',
+                'messages': [{'role': 'user', 'content': 'Hello'}],
+                'max_tokens': 50
+            },
+            content_type='application/json',
+            HTTP_AUTHORIZATION=f'Bearer {user_quota.api_key}'
+        )
+
+        # 验证请求成功
+        assert response.status_code == status.HTTP_200_OK
+
+        # 验证选择了便宜的模型（通过检查API请求记录）
+        from apps.billing.models import APIRequest
+        api_request = APIRequest.objects.filter(user_quota=user_quota).last()
+        
+        # 验证选择了便宜的模型（原始测试模型）
+        assert api_request.ai_model.provider.name == 'OpenAI'
+        assert api_request.ai_model.provider.name != 'Expensive Provider' 

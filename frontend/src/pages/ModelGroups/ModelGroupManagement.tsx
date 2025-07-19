@@ -342,7 +342,7 @@ export const ModelGroupManagement: React.FC = () => {
             >
               {models.map(model => (
                 <Select.Option key={model.id} value={model.id}>
-                  {model.display_name} ({model.name})
+                  [{model.provider_name}] {model.display_name} ({model.name})
                 </Select.Option>
               ))}
             </Select>
